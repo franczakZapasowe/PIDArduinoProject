@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Servo.h>
 #include "PID.h"
 
 // do pomiaru czasu w loop - pid
@@ -17,8 +18,14 @@ volatile float odlegoscWCm;
 //piny
 constexpr int TRIGGER_PIN = 4;  // czujnik wyślij ping
 constexpr int ECHO_PIN = 2;     // w momencie wyslania pingu zmienia stan naprocie echo na wysoki
+constexpr int SERWO_PIN = 9;
 
+//
 PIDController pid(1.0f, 0.5f, 0.1f, -45.0f, 45.0f);
+
+//serwomechanizm
+Servo servo;
+constexpr int bazowe_ustawienie_serwo = 90;
 
 void echoInterrupt() {
     if (digitalRead(ECHO_PIN) == HIGH) {
@@ -35,6 +42,8 @@ void setup() {
     pinMode(TRIGGER_PIN,OUTPUT);
     pinMode(ECHO_PIN,INPUT);
     attachInterrupt(digitalPinToInterrupt(ECHO_PIN),echoInterrupt, CHANGE);
+    servo.attach(SERWO_PIN);
+    servo.write(bazowe_ustawienie_serwo);
 }
 
 void loop() {
@@ -55,6 +64,11 @@ void loop() {
         float pv = odlegoscWCm;
         interrupts();
         float u = pid.calculate(15.0f,pv,dt/1000000.0f);
+
+        int real_output_servo = u + bazowe_ustawienie_serwo ; 
+        if (real_output_servo > 135) real_output_servo = 135;
+        else if (real_output_servo < 45 ) real_output_servo = 45;
+        servo.write(real_output_servo);
     }
 }
 
